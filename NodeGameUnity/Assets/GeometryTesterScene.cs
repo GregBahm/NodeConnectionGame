@@ -31,10 +31,7 @@ public class GeometryTesterScene : MonoBehaviour
         NodeState from = GetNodeFromTransform(fromTransform);
         NodeState to = GetNodeFromTransform(toTransform);
 
-        Vector2 fromPerpendicular = new Vector2(-from.Direction.y, from.Direction.x);
-        Vector2 toPerpendicular = new Vector2(-to.Direction.y, to.Direction.x);
-
-        Vector2? maybeIntersection = GetLineLineIntersection(from.Pos, fromPerpendicular, to.Pos, toPerpendicular);
+        Vector2? maybeIntersection = GetLineLineIntersection(from.Pos, from.Direction, to.Pos, to.Direction);
 
         if (!maybeIntersection.HasValue)
         {
@@ -43,8 +40,19 @@ public class GeometryTesterScene : MonoBehaviour
         Vector2 intersection = maybeIntersection.Value;
         intersectionPoint.localPosition = new Vector3(intersection.x, 0, intersection.y);
 
-        DrawCircle(fromCircleLineRenderer, from, intersection);
-        DrawCircle(toCircleLineRenderer, to, intersection);
+        Vector2 intersectionToFrom = (from.Pos - intersection).normalized;
+        Vector2 intersectionToTo = (to.Pos - intersection).normalized;
+        Vector2 halfVector = (intersectionToFrom + intersectionToTo).normalized;
+
+
+        Vector2 fromPerpendicular = new Vector2(-from.Direction.y, from.Direction.x);
+        Vector2 toPerpendicular = new Vector2(-to.Direction.y, to.Direction.x);
+
+        Vector2 fromCenter = GetLineLineIntersection(from.Pos, fromPerpendicular, intersection, halfVector).Value;
+        Vector2 toCenter = GetLineLineIntersection(to.Pos, toPerpendicular, intersection, halfVector).Value;
+
+        DrawCircle(fromCircleLineRenderer, from, fromCenter);
+        DrawCircle(toCircleLineRenderer, to, toCenter);
     }
 
     private void DrawCircle(LineRenderer renderer, NodeState pointOnCircle, Vector2 center)
