@@ -13,11 +13,6 @@ public class MainScript : MonoBehaviour
     private NodeBehavior closestNodeToMouse;
     public NodeBehavior ClosestNodeToMouse => closestNodeToMouse;
 
-    [SerializeField]
-    private Transform debuggyBuddyA;
-    [SerializeField]
-    private Transform debuggyBuddyB;
-
     private void Start()
     {
         grid = GetComponent<GameGrid>();
@@ -42,6 +37,12 @@ public class MainScript : MonoBehaviour
             return new Vector2(pos.x, pos.z);
         }
         return Vector2.zero;
+    }
+
+    public NodeState GetCurrentNodeState(string nodeIdentifier)
+    {
+        GameState currentState = gameStates[gameStates.Count - 1];
+        return currentState.GetNode(nodeIdentifier);
     }
 }
 

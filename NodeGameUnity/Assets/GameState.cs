@@ -1,8 +1,22 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 public record GameState
 {
     public IReadOnlyList<NodeState> Nodes { get; init; }
+
+    private Dictionary<string, NodeState> nodesById;
+
+    public GameState(IReadOnlyList<NodeState> nodes)
+    {
+        Nodes = nodes;
+        nodesById = nodes.ToDictionary(item => item.Identifier);
+    }
+
+    public NodeState GetNode(string id)
+    {
+        return nodesById[id];
+    }
 
     public GameState GetWithConnection(NodeState fromNode, NodeState toNode)
     {

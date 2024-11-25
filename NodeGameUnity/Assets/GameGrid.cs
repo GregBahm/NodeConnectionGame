@@ -50,7 +50,7 @@ public class GameGrid : MonoBehaviour
                 states.Add(state);
             }
         }
-        return new GameState() { Nodes = states.AsReadOnly() };
+        return new GameState(states.AsReadOnly());
     }
 
     private NodeState CreateNodeState(int row, int column)
