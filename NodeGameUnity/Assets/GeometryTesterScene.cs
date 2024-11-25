@@ -18,6 +18,11 @@ public class GeometryTesterScene : MonoBehaviour
     [SerializeField]
     private Transform intersectionPoint;
 
+    [SerializeField]
+    private Transform debugStart;
+    [SerializeField]
+    private Transform debugEnd;
+
     private const int SEGMENT_COUNT = 100;
 
     private void Start()
@@ -38,7 +43,6 @@ public class GeometryTesterScene : MonoBehaviour
             return;
         }
         Vector2 intersection = maybeIntersection.Value;
-        intersectionPoint.localPosition = new Vector3(intersection.x, 0, intersection.y);
 
         Vector2 intersectionToFrom = (from.Pos - intersection).normalized;
         Vector2 intersectionToTo = (to.Pos - intersection).normalized;
@@ -49,22 +53,33 @@ public class GeometryTesterScene : MonoBehaviour
         Vector2 toPerpendicular = new Vector2(-to.Direction.y, to.Direction.x);
 
         Vector2 fromCenter = GetLineLineIntersection(from.Pos, fromPerpendicular, intersection, halfVector).Value;
-        Vector2 toCenter = GetLineLineIntersection(to.Pos, toPerpendicular, intersection, halfVector).Value;
+        Vector2 toIntersection = GetLineLineIntersection(fromCenter, toPerpendicular, to.Pos, to.Direction).Value;
 
-        DrawCircle(fromCircleLineRenderer, from, fromCenter);
-        DrawCircle(toCircleLineRenderer, to, toCenter);
+        DrawCircle(fromCircleLineRenderer, from.Pos, toIntersection, fromCenter);
+
+        //Vector2 toCenter = GetLineLineIntersection(to.Pos, toPerpendicular, intersection, halfVector).Value;
+        //DrawCircle(toCircleLineRenderer, to, toCenter);
     }
 
-    private void DrawCircle(LineRenderer renderer, NodeState pointOnCircle, Vector2 center)
+    private void DrawCircle(LineRenderer renderer, Vector2 arcStart, Vector2 arcEnd, Vector2 center)
     {
-        float circleRadius = (pointOnCircle.Pos - center).magnitude;
+
+        float circleRadius = (arcStart - center).magnitude;
+        float angleStart = Vector2.SignedAngle(Vector2.right, arcStart - center);
+        float angleEnd = Vector2.SignedAngle(Vector2.right, arcEnd - center);
+        Debug.Log("Start:" + angleStart + " End:" + angleEnd);
         for (int i = 0; i < SEGMENT_COUNT; i++)
         {
             float t = i / (float)(SEGMENT_COUNT - 1);
-            float angle = Mathf.Lerp(0, 360, t);//Mathf.Lerp(fromAngle, toAngle, t);
-            Vector2 pos = center + circleRadius * new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+            Vector2 pos = GetPos(center, angleStart, angleEnd, circleRadius, t);
             renderer.SetPosition(i, new Vector3(pos.x, 0, pos.y));
         }
+    }
+
+    private Vector2 GetPos(Vector2 circleCenter, float startAngle, float endAngle, float radius, float t)
+    {
+        float angle = Mathf.Lerp(startAngle, endAngle, t);
+        return circleCenter + radius * new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
     }
 
     private NodeState GetNodeFromTransform(Transform node)
