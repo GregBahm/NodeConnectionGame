@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class GameGrid : MonoBehaviour
@@ -14,7 +15,7 @@ public class GameGrid : MonoBehaviour
     [SerializeField]
     private float margin;
 
-    private readonly Dictionary<Guid, NodeBehavior> nodeGameObjects = new Dictionary<Guid, NodeBehavior>();
+    private readonly Dictionary<string, NodeBehavior> nodeGameObjects = new Dictionary<string, NodeBehavior>();
     private NodeBehavior[,] nodeGrid;
 
     public void InitializeGrid(GameState currentState)
@@ -29,6 +30,7 @@ public class GameGrid : MonoBehaviour
     private void InitializeNodeGameObject(NodeState node)
     {
         GameObject obj = Instantiate(nodePrefab);
+        obj.name = node.Identifier;
         NodeBehavior behavior = obj.GetComponent<NodeBehavior>();
         behavior.Initialize(node);
         nodeGameObjects.Add(node.Identifier, behavior);
@@ -58,7 +60,7 @@ public class GameGrid : MonoBehaviour
         Vector2 position = new Vector2(column, row) + positionOffset;
         NodeState state = new NodeState()
         {
-            Identifier = Guid.NewGuid(),
+            Identifier = row + "," + column,
             Pos = position,
             Direction = direction,
             Type = (NodeType)UnityEngine.Random.Range(0, 3),
@@ -66,5 +68,40 @@ public class GameGrid : MonoBehaviour
             OutgoingConnections = new List<NodeConnection>().AsReadOnly()
         };
         return state;
+    }
+
+    internal NodeBehavior GetClosestNodeToMouse(Vector2 mousePlanePosition)
+    {
+        int gridX = Mathf.FloorToInt(mousePlanePosition.x);
+        int gridY = Mathf.FloorToInt(mousePlanePosition.y);
+        NodeBehavior[] nodes = GetNodesAroundGrid(gridX, gridY).ToArray();
+        NodeBehavior closestNode = null;
+        float closestDistance = float.MaxValue;
+        foreach (NodeBehavior node in nodes)
+        {
+            Vector2 pos = new Vector2(node.transform.localPosition.x, node.transform.localPosition.z);
+            float distance = Vector2.Distance(pos, mousePlanePosition);
+            if (distance < closestDistance)
+            {
+                closestNode = node;
+                closestDistance = distance;
+            }
+        }
+        return closestNode;
+    }
+
+    private IEnumerable<NodeBehavior> GetNodesAroundGrid(int gridX, int gridY)
+    {
+        for (int row = gridY - 1; row <= gridY + 1; row++)
+        {
+            for (int column = gridX - 1; column <= gridX + 1; column++)
+            {
+                if (row >= 0 && row < rows && column >= 0 && column < columns)
+                {
+                    NodeBehavior node = nodeGrid[row, column];
+                    yield return node;
+                }
+            }
+        }
     }
 }

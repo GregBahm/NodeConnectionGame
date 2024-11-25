@@ -3,7 +3,7 @@ using UnityEngine;
 
 public class NodeBehavior : MonoBehaviour
 {
-    public Guid Identifier { get; private set; }
+    public string Identifier { get; private set; }
 
     public void Initialize(NodeState initialState)
     {
