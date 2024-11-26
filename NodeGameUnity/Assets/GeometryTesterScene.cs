@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static UnityEditor.PlayerSettings;
 
 public class GeometryTesterScene : MonoBehaviour
 {
@@ -11,24 +12,22 @@ public class GeometryTesterScene : MonoBehaviour
     private Transform toTransform;
 
     [SerializeField]
-    private LineRenderer fromCircleLineRenderer;
+    private LineRenderer fromCircleLineRendererA;
     [SerializeField]
-    private LineRenderer toCircleLineRenderer;
-
+    private LineRenderer toCircleLineRendererA;
     [SerializeField]
-    private Transform intersectionPoint;
-
+    private LineRenderer fromCircleLineRendererB;
     [SerializeField]
-    private Transform debugStart;
-    [SerializeField]
-    private Transform debugEnd;
+    private LineRenderer toCircleLineRendererB;
 
     private const int SEGMENT_COUNT = 100;
 
     private void Start()
     {
-        fromCircleLineRenderer.positionCount = SEGMENT_COUNT;
-        toCircleLineRenderer.positionCount = SEGMENT_COUNT;
+        fromCircleLineRendererA.positionCount = SEGMENT_COUNT;
+        toCircleLineRendererA.positionCount = SEGMENT_COUNT;
+        fromCircleLineRendererB.positionCount = SEGMENT_COUNT;
+        toCircleLineRendererB.positionCount = SEGMENT_COUNT;
     }
 
     private void Update()
@@ -55,30 +54,59 @@ public class GeometryTesterScene : MonoBehaviour
         Vector2 fromCenter = GetLineLineIntersection(from.Pos, fromPerpendicular, intersection, halfVector).Value;
         Vector2 toIntersection = GetLineLineIntersection(fromCenter, toPerpendicular, to.Pos, to.Direction).Value;
 
-        DrawCircle(fromCircleLineRenderer, from.Pos, toIntersection, fromCenter);
 
-        //Vector2 toCenter = GetLineLineIntersection(to.Pos, toPerpendicular, intersection, halfVector).Value;
-        //DrawCircle(toCircleLineRenderer, to, toCenter);
+        DrawLine(from, to, fromCircleLineRendererA, intersection, halfVector, true);
+        DrawLine(to, from, toCircleLineRendererA, intersection, halfVector, true);
+        DrawLine(from, to, fromCircleLineRendererB, intersection, halfVector, false);
+        DrawLine(to, from, toCircleLineRendererB, intersection, halfVector, false);
     }
 
-    private void DrawCircle(LineRenderer renderer, Vector2 arcStart, Vector2 arcEnd, Vector2 center)
+    private void DrawLine(NodeState from, NodeState to, LineRenderer renderer, Vector2 intersection, Vector2 halfVector, bool reverseArc)
     {
+        Vector2 fromPerpendicular = new Vector2(-from.Direction.y, from.Direction.x);
+        Vector2 toPerpendicular = new Vector2(-to.Direction.y, to.Direction.x);
 
-        float circleRadius = (arcStart - center).magnitude;
-        float angleStart = Vector2.SignedAngle(Vector2.right, arcStart - center);
-        float angleEnd = Vector2.SignedAngle(Vector2.right, arcEnd - center);
-        Debug.Log("Start:" + angleStart + " End:" + angleEnd);
-        for (int i = 0; i < SEGMENT_COUNT; i++)
+        Vector2 fromCenter = GetLineLineIntersection(from.Pos, fromPerpendicular, intersection, halfVector).Value;
+        Vector2 toIntersection = GetLineLineIntersection(fromCenter, toPerpendicular, to.Pos, to.Direction).Value;
+
+        DrawCircle(renderer, from.Pos, to.Pos, toIntersection, fromCenter, reverseArc);
+    }
+
+    private void DrawCircle(LineRenderer renderer, Vector2 fromPos, Vector2 toPos, Vector2 arcEnd, Vector2 center, bool reverseArc)
+    {
+        float circleRadius = (fromPos - center).magnitude;
+        float sweep = Vector2.SignedAngle(fromPos - center, arcEnd - center);
+        float angleOffset = Vector2.SignedAngle(Vector2.right, fromPos - center);
+        Vector3 startPos = new Vector3(fromPos.x, 0, fromPos.y);
+        Vector3 endPos = new Vector3(toPos.x, 0, toPos.y);
+        if (reverseArc)
         {
-            float t = i / (float)(SEGMENT_COUNT - 1);
-            Vector2 pos = GetPos(center, angleStart, angleEnd, circleRadius, t);
+            if (sweep > 0)
+            {
+                sweep = 360 - sweep;
+                angleOffset = Vector2.SignedAngle(Vector2.right, arcEnd - center);
+                startPos = new Vector3(toPos.x, 0, toPos.y);
+                endPos = new Vector3(fromPos.x, 0, fromPos.y);
+            }
+            else
+            {
+                sweep = (sweep + 360) % 360;
+            }
+        }
+
+        renderer.SetPosition(0, startPos);
+        for (int i = 1; i < SEGMENT_COUNT - 1; i++)
+        {
+            float t = i / (float)(SEGMENT_COUNT - 3);
+            float angle = sweep * t + angleOffset;
+            Vector2 pos = GetPointAtAngle(center, angle, circleRadius);
             renderer.SetPosition(i, new Vector3(pos.x, 0, pos.y));
         }
+        renderer.SetPosition(SEGMENT_COUNT - 1, endPos);
     }
 
-    private Vector2 GetPos(Vector2 circleCenter, float startAngle, float endAngle, float radius, float t)
+    private Vector2 GetPointAtAngle(Vector2 circleCenter, float angle, float radius)
     {
-        float angle = Mathf.Lerp(startAngle, endAngle, t);
         return circleCenter + radius * new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
     }
 
@@ -86,7 +114,7 @@ public class GeometryTesterScene : MonoBehaviour
     {
         Vector2 pos = new Vector2(node.position.x, node.position.z);
         Vector2 direction = new Vector2(node.forward.x, node.forward.z);
-        return new NodeState() { Pos =pos, Direction = direction };
+        return new NodeState() { Pos = pos, Direction = direction };
     }
 
     public static Vector2? GetLineLineIntersection(Vector2 lineAStart, Vector2 lineADirection, Vector2 lineBStart, Vector2 lineBDirection)
