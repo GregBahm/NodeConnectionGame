@@ -19,27 +19,20 @@ public class GeometryTesterTwo : MonoBehaviour
     private GameObject arcPrefab;
 
     [SerializeField]
-    private Color fromColor;
+    private Color rayColor;
+
     [SerializeField]
-    private Color fromPerpendicularColor;
+    private Color fromColor;
 
     [SerializeField]
     private Color toColor;
-    [SerializeField]
-    private Color toPerpendicularColor;
 
     private const int SEGMENT_COUNT = 100;
 
-    private LineBehavior fromLine;
-    private LineBehavior toLine;
-    private LineBehavior fromPerpendicular;
-    private LineBehavior toPerpendicular;
     private ArcBehavior theArc;
 
     private RayBehavior intersectionBisector;
 
-    [SerializeField]
-    private bool flipA;
     [SerializeField]
     private bool invertSweep;
     [SerializeField]
@@ -47,25 +40,9 @@ public class GeometryTesterTwo : MonoBehaviour
 
     private void Start()
     {
-        fromLine = SpawnLine();
-        fromLine.ColorStart = fromColor;
-        fromLine.ColorEnd = fromColor;
-
-        fromPerpendicular = SpawnLine();
-        fromPerpendicular.ColorStart = fromPerpendicularColor;
-        fromPerpendicular.ColorEnd = fromPerpendicularColor;
-
-        toLine = SpawnLine();
-        toLine.ColorStart = toColor;
-        toLine.ColorEnd = toColor;
-
-        toPerpendicular = SpawnLine();
-        toPerpendicular.ColorStart = toPerpendicularColor;
-        toPerpendicular.ColorEnd = toPerpendicularColor;
-
         intersectionBisector = SpawnRay();
-        intersectionBisector.ColorStart = new Color(1, 0, 0, 1);
-        intersectionBisector.ColorEnd = new Color(1, 1, 0, 1);
+        intersectionBisector.ColorStart = rayColor;
+        intersectionBisector.ColorEnd = Color.black;
 
         theArc = SpawnArc();
         theArc.ColorStart = fromColor;
@@ -93,18 +70,10 @@ public class GeometryTesterTwo : MonoBehaviour
         return arc;
     }
 
-    [SerializeField]
-    private Transform debugger;
-
     private void Update()
     {
         NodeState from = GetNodeFromTransform(fromTransform);
         NodeState to = GetNodeFromTransform(toTransform);
-
-        fromLine.StartPos = from.Pos;
-        fromLine.Direction = from.Direction;
-        toLine.StartPos = to.Pos;
-        toLine.Direction = to.Direction;
 
         Vector2? maybeIntersection = GetLineLineIntersection(from.Pos, from.Direction, to.Pos, to.Direction);
         if (!maybeIntersection.HasValue)
@@ -113,22 +82,14 @@ public class GeometryTesterTwo : MonoBehaviour
         }
         Vector2 intersection = maybeIntersection.Value;
 
-        Vector2 theBisector = GetAngleBisector(from.Pos, intersection, to.Pos);
+        Vector2 theBisector = (from.Direction + to.Direction).normalized;
+        theBisector = Vector2.Perpendicular(theBisector);
 
         Vector2 fromPerpendicularDir = Vector2.Perpendicular(from.Direction);
         Vector2 toPerpendicularDir = Vector2.Perpendicular(to.Direction);
-        Vector2 bisectorPerpendicular = Vector2.Perpendicular(theBisector);
 
         intersectionBisector.StartPos = intersection;
         intersectionBisector.Direction = theBisector;
-
-        Vector2 fromOnBisector = ProjectPointOnLine(from.Pos, intersection, theBisector);
-        Vector2 toOnBisector = ProjectPointOnLine(to.Pos, intersection, theBisector);
-
-        fromPerpendicular.StartPos = from.Pos;
-        fromPerpendicular.Direction = fromPerpendicularDir;
-        toPerpendicular.StartPos = toPerpendicularDir;
-        toPerpendicular.Direction = toPerpendicularDir;
 
         float fromToIntersection = (from.Pos - intersection).magnitude;
         float toToIntersection = (to.Pos - intersection).magnitude;
@@ -136,18 +97,21 @@ public class GeometryTesterTwo : MonoBehaviour
         {
             Vector2 perpendicularBisectorIntersection = GetLineLineIntersection(from.Pos, fromPerpendicularDir, intersection, theBisector).Value;
             Vector2 arcEnd = ReflectPointOverLine(from.Pos, intersection, theBisector);
-            theArc.StartPoint = from.Pos;
-            theArc.EndPoint = arcEnd;
+            theArc.ArcStart = from.Pos;
+            theArc.ArcEnd = arcEnd;
             theArc.Center = perpendicularBisectorIntersection;
         }
         else
         {
             Vector2 perpendicularBisectorIntersection = GetLineLineIntersection(to.Pos, toPerpendicularDir, intersection, theBisector).Value;
             Vector2 arcStart = ReflectPointOverLine(to.Pos, intersection, theBisector);
-            theArc.StartPoint = arcStart;
-            theArc.EndPoint = to.Pos;
+            theArc.ArcStart = arcStart;
+            theArc.ArcEnd = to.Pos;
             theArc.Center = perpendicularBisectorIntersection;
         }
+
+        theArc.LineStart = from.Pos;
+        theArc.LineEnd = to.Pos;
 
         theArc.InvertSweep = invertSweep;
     }
@@ -174,14 +138,6 @@ public class GeometryTesterTwo : MonoBehaviour
         Vector2 pos = new Vector2(node.position.x, node.position.z);
         Vector2 direction = new Vector2(node.forward.x, node.forward.z);
         return new NodeState() { Pos = pos, Direction = direction };
-    }
-
-    private Vector2 GetAngleBisector(Vector2 pointA, Vector2 pointB, Vector2 pointC)
-    {
-        Vector2 ab = (pointA - pointB).normalized;
-        Vector2 bc = (pointC - pointB).normalized;
-        ab = flipA ? -ab : ab;
-        return (ab + bc).normalized;
     }
 
     public static Vector2? GetLineLineIntersection(Vector2 lineAStart, Vector2 lineADirection, Vector2 lineBStart, Vector2 lineBDirection)

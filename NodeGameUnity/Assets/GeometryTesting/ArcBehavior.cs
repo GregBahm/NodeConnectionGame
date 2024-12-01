@@ -5,8 +5,10 @@ using UnityEngine;
 
 public class ArcBehavior : MonoBehaviour
 {
-    public Vector2 StartPoint { get; set; }
-    public Vector2 EndPoint { get; set; }
+    public Vector2 LineStart { get; set; }
+    public Vector2 LineEnd { get; set; }
+    public Vector2 ArcStart { get; set; }
+    public Vector2 ArcEnd { get; set; }
 
     public Vector2 Center { get; set; }
 
@@ -37,24 +39,26 @@ public class ArcBehavior : MonoBehaviour
     }
     private void Update()
     {
-        float circleRadius = (StartPoint - Center).magnitude;
-        Sweep = Vector2.SignedAngle(StartPoint - Center, EndPoint - Center);
+        float circleRadius = (ArcStart - Center).magnitude;
+        Sweep = Vector2.SignedAngle(ArcStart - Center, ArcEnd - Center);
         Sweep = (Sweep % 360 + 360) % 360;
-        float angleOffset = Vector2.SignedAngle(Vector2.right, StartPoint - Center);
+        float angleOffset = Vector2.SignedAngle(Vector2.right, ArcStart - Center);
 
         if(InvertSweep)
         {
-            angleOffset = Vector2.SignedAngle(Vector2.right, EndPoint - Center);
+            angleOffset = Vector2.SignedAngle(Vector2.right, ArcEnd - Center);
         }
 
-        for (int i = 0; i < resolution; i++)
+        theRenderer.SetPosition(0, new Vector3(LineStart.x, 0, LineStart.y));
+        for (int i = 1; i < resolution - 1; i++)
         {
-            float t = i / (float)(resolution - 1);
+            float t = (i - 1) / (float)(resolution - 3);
             float effectiveSweep = InvertSweep ? InvertedSweep * (1 - t) : Sweep * t;
             float angle = effectiveSweep + angleOffset;
             Vector2 pos = GetPointAtAngle(Center, angle, circleRadius);
             theRenderer.SetPosition(i, new Vector3(pos.x, 0, pos.y));
         }
+        theRenderer.SetPosition(resolution - 1, new Vector3(LineEnd.x, 0, LineEnd.y));
     }
 
     private Vector2 GetPointAtAngle(Vector2 circleCenter, float angle, float radius)

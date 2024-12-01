@@ -19,7 +19,7 @@ public class RayBehavior : MonoBehaviour
     }
     private void Update()
     {
-        Vector2 offset = StartPos + Direction * 2000;
+        Vector2 offset = StartPos + Direction * 2;
         theRenderer.SetPosition(0, new Vector3(StartPos.x, 0, StartPos.y));
         theRenderer.SetPosition(1, new Vector3(offset.x, 0, offset.y));
     }
