@@ -38,6 +38,13 @@ public class GeometryTesterTwo : MonoBehaviour
 
     private RayBehavior intersectionBisector;
 
+    [SerializeField]
+    private bool flipA;
+    [SerializeField]
+    private bool invertSweep;
+    [SerializeField]
+    private bool startFromFrom;
+
     private void Start()
     {
         fromLine = SpawnLine();
@@ -125,7 +132,7 @@ public class GeometryTesterTwo : MonoBehaviour
 
         float fromToIntersection = (from.Pos - intersection).magnitude;
         float toToIntersection = (to.Pos - intersection).magnitude;
-        if(fromToIntersection < toToIntersection)
+        if((fromToIntersection < toToIntersection) == startFromFrom)
         {
             Vector2 perpendicularBisectorIntersection = GetLineLineIntersection(from.Pos, fromPerpendicularDir, intersection, theBisector).Value;
             Vector2 arcEnd = ReflectPointOverLine(from.Pos, intersection, theBisector);
@@ -142,7 +149,7 @@ public class GeometryTesterTwo : MonoBehaviour
             theArc.Center = perpendicularBisectorIntersection;
         }
 
-
+        theArc.InvertSweep = invertSweep;
     }
 
     private static Vector2 ReflectPointOverLine(Vector2 point, Vector2 lineStart, Vector2 lineDirection)
@@ -169,17 +176,11 @@ public class GeometryTesterTwo : MonoBehaviour
         return new NodeState() { Pos = pos, Direction = direction };
     }
 
-    [SerializeField]
-    private bool flipA;
-    [SerializeField]
-    private bool flipB;
-
     private Vector2 GetAngleBisector(Vector2 pointA, Vector2 pointB, Vector2 pointC)
     {
         Vector2 ab = (pointA - pointB).normalized;
         Vector2 bc = (pointC - pointB).normalized;
         ab = flipA ? -ab : ab;
-        bc = flipB ? -bc : bc;
         return (ab + bc).normalized;
     }
 

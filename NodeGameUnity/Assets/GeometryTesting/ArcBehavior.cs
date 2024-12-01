@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.Properties;
 using UnityEngine;
 
 public class ArcBehavior : MonoBehaviour
@@ -12,7 +13,18 @@ public class ArcBehavior : MonoBehaviour
     public Color ColorStart { get; set; }
     public Color ColorEnd { get; set; }
 
+    public bool InvertSweep { get; set; }
+
     private int resolution = 100;
+
+    public float Sweep { get; private set; }
+    public float InvertedSweep
+    {
+        get
+        {
+            return 360 - Sweep;
+        }
+    }
 
     [SerializeField]
     private LineRenderer theRenderer;
@@ -26,13 +38,20 @@ public class ArcBehavior : MonoBehaviour
     private void Update()
     {
         float circleRadius = (StartPoint - Center).magnitude;
-        float sweep = Vector2.SignedAngle(StartPoint - Center, EndPoint - Center);
+        Sweep = Vector2.SignedAngle(StartPoint - Center, EndPoint - Center);
+        Sweep = (Sweep % 360 + 360) % 360;
         float angleOffset = Vector2.SignedAngle(Vector2.right, StartPoint - Center);
+
+        if(InvertSweep)
+        {
+            angleOffset = Vector2.SignedAngle(Vector2.right, EndPoint - Center);
+        }
 
         for (int i = 0; i < resolution; i++)
         {
             float t = i / (float)(resolution - 1);
-            float angle = sweep * t + angleOffset;
+            float effectiveSweep = InvertSweep ? InvertedSweep * (1 - t) : Sweep * t;
+            float angle = effectiveSweep + angleOffset;
             Vector2 pos = GetPointAtAngle(Center, angle, circleRadius);
             theRenderer.SetPosition(i, new Vector3(pos.x, 0, pos.y));
         }
