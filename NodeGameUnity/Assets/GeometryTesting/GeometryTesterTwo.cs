@@ -12,10 +12,6 @@ public class GeometryTesterTwo : MonoBehaviour
     private Transform toTransform;
 
     [SerializeField]
-    private GameObject linePrefab;
-    [SerializeField]
-    private GameObject rayPrefab;
-    [SerializeField]
     private GameObject arcPrefab;
 
     [SerializeField]
@@ -31,36 +27,15 @@ public class GeometryTesterTwo : MonoBehaviour
 
     private ArcBehavior theArc;
 
-    private RayBehavior intersectionBisector;
-
     [SerializeField]
     private bool invertSweep;
-    [SerializeField]
-    private bool startFromFrom;
 
     private void Start()
     {
-        intersectionBisector = SpawnRay();
-        intersectionBisector.ColorStart = rayColor;
-        intersectionBisector.ColorEnd = Color.black;
 
         theArc = SpawnArc();
         theArc.ColorStart = fromColor;
         theArc.ColorEnd = toColor;
-    }
-
-    public LineBehavior SpawnLine()
-    {
-        GameObject lineObject = Instantiate(linePrefab);
-        LineBehavior line = lineObject.GetComponent<LineBehavior>();
-        return line;
-    }
-
-    public RayBehavior SpawnRay()
-    {
-        GameObject rayObject = Instantiate(rayPrefab);
-        RayBehavior ray = rayObject.GetComponent<RayBehavior>();
-        return ray;
     }
 
     public ArcBehavior SpawnArc()
@@ -69,6 +44,9 @@ public class GeometryTesterTwo : MonoBehaviour
         ArcBehavior arc = arcObject.GetComponent<ArcBehavior>();
         return arc;
     }
+
+    [SerializeField]
+    private Transform debuggyBuddy;
 
     private void Update()
     {
@@ -88,32 +66,41 @@ public class GeometryTesterTwo : MonoBehaviour
         Vector2 fromPerpendicularDir = Vector2.Perpendicular(from.Direction);
         Vector2 toPerpendicularDir = Vector2.Perpendicular(to.Direction);
 
-        intersectionBisector.StartPos = intersection;
-        intersectionBisector.Direction = theBisector;
-
         float fromToIntersection = (from.Pos - intersection).magnitude;
         float toToIntersection = (to.Pos - intersection).magnitude;
-        if((fromToIntersection < toToIntersection) == startFromFrom)
+
+        Vector2 offsetFromCenter = GetLineLineIntersection(from.Pos, fromPerpendicularDir, intersection, theBisector).Value;
+        Vector2 offsetToCenter = GetLineLineIntersection(to.Pos, toPerpendicularDir, intersection, theBisector).Value;
+
+        Vector2 offsetEnd = ReflectPointOverLine(from.Pos, intersection, theBisector);
+        Vector2 offsetStart = ReflectPointOverLine(to.Pos, intersection, theBisector);
+
+        float offsetDot = Vector2.Dot(offsetStart - from.Pos, from.Direction);
+        if(offsetDot > 0)
         {
-            Vector2 perpendicularBisectorIntersection = GetLineLineIntersection(from.Pos, fromPerpendicularDir, intersection, theBisector).Value;
-            Vector2 arcEnd = ReflectPointOverLine(from.Pos, intersection, theBisector);
             theArc.ArcStart = from.Pos;
-            theArc.ArcEnd = arcEnd;
-            theArc.Center = perpendicularBisectorIntersection;
+            theArc.ArcEnd = offsetEnd;
+            theArc.Center = offsetFromCenter;
+
+            debuggyBuddy.position = new Vector3(offsetEnd.x, 0, offsetEnd.y);
+            debuggyBuddy.rotation = toTransform.rotation;
         }
         else
         {
-            Vector2 perpendicularBisectorIntersection = GetLineLineIntersection(to.Pos, toPerpendicularDir, intersection, theBisector).Value;
-            Vector2 arcStart = ReflectPointOverLine(to.Pos, intersection, theBisector);
-            theArc.ArcStart = arcStart;
+            theArc.ArcStart = offsetStart;
             theArc.ArcEnd = to.Pos;
-            theArc.Center = perpendicularBisectorIntersection;
+            theArc.Center = offsetToCenter;
+
+            debuggyBuddy.position = new Vector3(offsetStart.x, 0, offsetStart.y);
+            debuggyBuddy.rotation = fromTransform.rotation;
         }
 
         theArc.LineStart = from.Pos;
         theArc.LineEnd = to.Pos;
 
-        theArc.InvertSweep = invertSweep;
+        float arcDot = Vector2.Dot(from.Direction, Vector2.Perpendicular(to.Direction));
+
+        theArc.InvertSweep = arcDot > 0;
     }
 
     private static Vector2 ReflectPointOverLine(Vector2 point, Vector2 lineStart, Vector2 lineDirection)
