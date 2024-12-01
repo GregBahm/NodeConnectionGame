@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 using static UnityEditor.PlayerSettings;
 
@@ -35,6 +36,8 @@ public class GeometryTesterScene : MonoBehaviour
         NodeState from = GetNodeFromTransform(fromTransform);
         NodeState to = GetNodeFromTransform(toTransform);
 
+        SetRenderers(from, to);
+
         Vector2? maybeIntersection = GetLineLineIntersection(from.Pos, from.Direction, to.Pos, to.Direction);
 
         if (!maybeIntersection.HasValue)
@@ -54,17 +57,35 @@ public class GeometryTesterScene : MonoBehaviour
         Vector2 fromCenter = GetLineLineIntersection(from.Pos, fromPerpendicular, intersection, halfVector).Value;
         Vector2 toIntersection = GetLineLineIntersection(fromCenter, toPerpendicular, to.Pos, to.Direction).Value;
 
-
         DrawLine(from, to, fromCircleLineRendererA, intersection, halfVector, true);
         DrawLine(to, from, toCircleLineRendererA, intersection, halfVector, true);
         DrawLine(from, to, fromCircleLineRendererB, intersection, halfVector, false);
         DrawLine(to, from, toCircleLineRendererB, intersection, halfVector, false);
     }
 
+    [SerializeField]
+    private Solver[] solvers;
+
+    private void SetRenderers(NodeState from, NodeState to)
+    {
+        Vector2 toFrom = to.Pos - from.Pos;
+        bool factorA = Vector2.Dot(from.Direction, toFrom) < 0;
+        bool factorB = Vector2.Dot(GetPerpendicular(to.Direction), toFrom) < 0;
+        foreach (var item in solvers)
+        {
+            item.Solve(factorA, factorB);
+        }
+    }
+
+    private static Vector2 GetPerpendicular(Vector2 value)
+    {
+       return new Vector2(-value.y, value.x);
+    }
+
     private void DrawLine(NodeState from, NodeState to, LineRenderer renderer, Vector2 intersection, Vector2 halfVector, bool reverseArc)
     {
-        Vector2 fromPerpendicular = new Vector2(-from.Direction.y, from.Direction.x);
-        Vector2 toPerpendicular = new Vector2(-to.Direction.y, to.Direction.x);
+        Vector2 fromPerpendicular = GetPerpendicular(from.Direction);
+        Vector2 toPerpendicular = GetPerpendicular(to.Direction);
 
         Vector2 fromCenter = GetLineLineIntersection(from.Pos, fromPerpendicular, intersection, halfVector).Value;
         Vector2 toIntersection = GetLineLineIntersection(fromCenter, toPerpendicular, to.Pos, to.Direction).Value;
@@ -131,5 +152,19 @@ public class GeometryTesterScene : MonoBehaviour
 
         Vector2 intersection = lineAStart + t * lineADirection;
         return intersection;
+    }
+}
+
+[Serializable]
+public class Solver
+{
+    public bool Alpha;
+    public bool FactorA;
+    public bool FactorB;
+    public LineRenderer Renderer;
+
+    public void Solve(bool factorA, bool factorB)
+    {
+        Renderer.enabled = Alpha && FactorA == factorA && FactorB == factorB;
     }
 }
