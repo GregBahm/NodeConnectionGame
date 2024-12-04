@@ -5,8 +5,8 @@ using UnityEngine;
 
 public class ArcBehavior : MonoBehaviour
 {
-    public Vector2 LineStart { get; set; }
-    public Vector2 LineEnd { get; set; }
+    public NodeState LineStart { get; set; }
+    public NodeState LineEnd { get; set; }
     public Vector2 ArcStart { get; set; }
     public Vector2 ArcEnd { get; set; }
 
@@ -19,10 +19,7 @@ public class ArcBehavior : MonoBehaviour
 
     private int resolution = 100;
 
-    public float Sweep { get; private set; }
-
     public bool LongWayAround { get; set; }
-    public bool CounterClockwise { get; set; }
 
     [SerializeField]
     private LineRenderer theRenderer;
@@ -35,30 +32,45 @@ public class ArcBehavior : MonoBehaviour
     }
     private void Update()
     {
-
         float circleRadius = (ArcStart - Center).magnitude;
-        Sweep = Vector2.Angle(ArcStart - Center, ArcEnd - Center);
-        BaseAngleOffset = Vector2.SignedAngle(Vector2.right, ArcStart - Center);
-        float angleOffset = BaseAngleOffset;
+        float angleOffset = Vector2.SignedAngle(Vector2.right, ArcStart - Center);
+        float sweep = GetSweep();
+        SetPositions(circleRadius, sweep, angleOffset);
+    }
 
-        if(LongWayAround)
-        {
-            Sweep = 360 - Sweep;
-        }
+    private float GetSweep()
+    {
+        float sweep = Vector2.Angle(ArcStart - Center, ArcEnd - Center);
+        bool clockwise = IsTangentClockwise(Center, ArcStart, LineStart.Direction);
+        Vector2 arcStartToArcEnd = ArcStart - ArcEnd;
+        bool longWayAround = Vector2.Dot(LineStart.Direction, arcStartToArcEnd) < 0;
 
-        theRenderer.SetPosition(0, new Vector3(LineStart.x, 0, LineStart.y));
+        if (LongWayAround)
+            sweep = 360 - sweep;
+        if (!clockwise)
+            sweep = -sweep;
+        return sweep;
+    }
+    private static bool IsTangentClockwise(Vector2 circleCenter, Vector2 tangentPointOnCircle, Vector2 directionOfTangent)
+    {
+        Vector2 centerToPoint = tangentPointOnCircle - circleCenter;
+        Vector2 normalizedTangent = directionOfTangent.normalized;
+
+        float crossProduct = centerToPoint.x * normalizedTangent.y - centerToPoint.y * normalizedTangent.x;
+        return crossProduct < 0;
+    }
+
+    private void SetPositions(float circleRadius, float sweep, float angleOffset)
+    {
+        theRenderer.SetPosition(0, new Vector3(LineStart.Pos.x, 0, LineStart.Pos.y));
         for (int i = 1; i < resolution - 1; i++)
         {
             float t = (i - 1) / (float)(resolution - 3);
-            if(CounterClockwise)
-            {
-                t = -t;
-            }
-            float angle = Sweep * t + angleOffset;
+            float angle = sweep * t + angleOffset;
             Vector2 pos = GetPointAtAngle(Center, angle, circleRadius);
             theRenderer.SetPosition(i, new Vector3(pos.x, 0, pos.y));
         }
-        theRenderer.SetPosition(resolution - 1, new Vector3(LineEnd.x, 0, LineEnd.y));
+        theRenderer.SetPosition(resolution - 1, new Vector3(LineEnd.Pos.x, 0, LineEnd.Pos.y));
     }
 
     private Vector2 GetPointAtAngle(Vector2 circleCenter, float angle, float radius)

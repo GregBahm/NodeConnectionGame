@@ -253,7 +253,7 @@ MonoBehaviour:
   fromTransform: {fileID: 1372999759}
   toTransform: {fileID: 179592863}
   arcPrefab: {fileID: 9041753783560483709, guid: 89172276b9a3ebc44b9fe2a9fb2776c3, type: 3}
-  rayColor: {r: 0.254717, g: 0.254717, b: 0.254717, a: 1}
+  rayColor: {r: 0, g: 0, b: 0, a: 0}
   fromColor: {r: 0, g: 1, b: 1, a: 1}
   toColor: {r: 1, g: 0, b: 1, a: 1}
   debuggyBuddy: {fileID: 1165584788}

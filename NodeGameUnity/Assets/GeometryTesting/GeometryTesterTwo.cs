@@ -90,24 +90,13 @@ public class GeometryTesterTwo : MonoBehaviour
             debuggyBuddy.rotation = fromTransform.rotation;
         }
 
-        theArc.LineStart = from.Pos;
-        theArc.LineEnd = to.Pos;
+        theArc.LineStart = from;
+        theArc.LineEnd = to;
 
         Vector2 arcStartToArcEnd = theArc.ArcStart - theArc.ArcEnd;
         longWayAround = Vector2.Dot(from.Direction, arcStartToArcEnd) < 0;
 
-        clockwise = IsTangentClockwise(theArc.Center, theArc.ArcStart, from.Direction);
-
         theArc.LongWayAround = longWayAround;
-        theArc.CounterClockwise = !clockwise;
-    }
-    public static bool IsTangentClockwise(Vector2 circleCenter, Vector2 tangentPointOnCircle, Vector2 directionOfTangent)
-    {
-        Vector2 centerToPoint = tangentPointOnCircle - circleCenter;
-        Vector2 normalizedTangent = directionOfTangent.normalized;
-        
-        float crossProduct = centerToPoint.x * normalizedTangent.y - centerToPoint.y * normalizedTangent.x;
-        return crossProduct < 0;
     }
 
     [SerializeField]
