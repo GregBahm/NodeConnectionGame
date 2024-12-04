@@ -23,12 +23,7 @@ public class GeometryTesterTwo : MonoBehaviour
     [SerializeField]
     private Color toColor;
 
-    private const int SEGMENT_COUNT = 100;
-
     private ArcBehavior theArc;
-
-    [SerializeField]
-    private bool invertSweep;
 
     private void Start()
     {
@@ -98,10 +93,27 @@ public class GeometryTesterTwo : MonoBehaviour
         theArc.LineStart = from.Pos;
         theArc.LineEnd = to.Pos;
 
-        float arcDot = Vector2.Dot(from.Direction, Vector2.Perpendicular(to.Direction));
+        Vector2 arcStartToArcEnd = theArc.ArcStart - theArc.ArcEnd;
+        longWayAround = Vector2.Dot(from.Direction, arcStartToArcEnd) < 0;
 
-        theArc.InvertSweep = arcDot > 0;
+        clockwise = IsTangentClockwise(theArc.Center, theArc.ArcStart, from.Direction);
+
+        theArc.LongWayAround = longWayAround;
+        theArc.CounterClockwise = !clockwise;
     }
+    public static bool IsTangentClockwise(Vector2 circleCenter, Vector2 tangentPointOnCircle, Vector2 directionOfTangent)
+    {
+        Vector2 centerToPoint = tangentPointOnCircle - circleCenter;
+        Vector2 normalizedTangent = directionOfTangent.normalized;
+        
+        float crossProduct = centerToPoint.x * normalizedTangent.y - centerToPoint.y * normalizedTangent.x;
+        return crossProduct < 0;
+    }
+
+    [SerializeField]
+    private bool longWayAround;
+    [SerializeField]
+    private bool clockwise;
 
     private static Vector2 ReflectPointOverLine(Vector2 point, Vector2 lineStart, Vector2 lineDirection)
     {
