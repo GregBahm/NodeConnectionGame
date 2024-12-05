@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using Unity.Properties;
@@ -32,10 +33,61 @@ public class ArcBehavior : MonoBehaviour
     }
     private void Update()
     {
+        Vector2? maybeIntersection = GetLineLineIntersection(LineStart.Pos, LineStart.Direction, LineEnd.Pos, LineEnd.Direction);
+        if (!maybeIntersection.HasValue)
+        {
+            //TODO: Handle this stituation
+            return;
+        }
+        SetArcStartAndEnd(maybeIntersection.Value);
+
         float circleRadius = (ArcStart - Center).magnitude;
         float angleOffset = Vector2.SignedAngle(Vector2.right, ArcStart - Center);
         float sweep = GetSweep();
+
         SetPositions(circleRadius, sweep, angleOffset);
+    }
+
+    private void SetArcStartAndEnd(Vector2 intersection)
+    {
+
+        Vector2 theBisector = (LineStart.Direction + LineEnd.Direction).normalized;
+        theBisector = Vector2.Perpendicular(theBisector);
+
+        Vector2 fromPerpendicularDir = Vector2.Perpendicular(LineStart.Direction);
+        Vector2 toPerpendicularDir = Vector2.Perpendicular(LineEnd.Direction);
+
+        float fromToIntersection = (LineStart.Pos - intersection).magnitude;
+        float toToIntersection = (LineEnd.Pos - intersection).magnitude;
+
+        Vector2 offsetFromCenter = GetLineLineIntersection(LineStart.Pos, fromPerpendicularDir, intersection, theBisector).Value;
+        Vector2 offsetToCenter = GetLineLineIntersection(LineEnd.Pos, toPerpendicularDir, intersection, theBisector).Value;
+
+        Vector2 offsetEnd = ReflectPointOverLine(LineStart.Pos, intersection, theBisector);
+        Vector2 offsetStart = ReflectPointOverLine(LineEnd.Pos, intersection, theBisector);
+
+        float offsetDot = Vector2.Dot(offsetStart - LineStart.Pos, LineStart.Direction);
+        if (offsetDot > 0)
+        {
+            ArcStart = LineStart.Pos;
+            ArcEnd = offsetEnd;
+            Center = offsetFromCenter;
+        }
+        else
+        {
+            ArcStart = offsetStart;
+            ArcEnd = LineEnd.Pos;
+            Center = offsetToCenter;
+        }
+    }
+    private static Vector2 ReflectPointOverLine(Vector2 point, Vector2 lineStart, Vector2 lineDirection)
+    {
+        Vector2 pointToStart = point - lineStart;
+        float projectionLength = Vector2.Dot(pointToStart, lineDirection);
+        Vector2 projection = projectionLength * lineDirection;
+        Vector2 closestPointOnLine = lineStart + projection;
+        Vector2 reflectedPoint = closestPointOnLine * 2 - point;
+        return reflectedPoint;
     }
 
     private float GetSweep()
@@ -76,5 +128,21 @@ public class ArcBehavior : MonoBehaviour
     private Vector2 GetPointAtAngle(Vector2 circleCenter, float angle, float radius)
     {
         return circleCenter + radius * new Vector2(Mathf.Cos(angle * Mathf.Deg2Rad), Mathf.Sin(angle * Mathf.Deg2Rad));
+    }
+
+    public static Vector2? GetLineLineIntersection(Vector2 lineAStart, Vector2 lineADirection, Vector2 lineBStart, Vector2 lineBDirection)
+    {
+        float crossDir = lineADirection.x * lineBDirection.y - lineADirection.y * lineBDirection.x;
+
+        if (Mathf.Abs(crossDir) < Mathf.Epsilon)
+        {
+            return null; // No intersection
+        }
+
+        Vector2 diffStart = lineBStart - lineAStart;
+        float t = (diffStart.x * lineBDirection.y - diffStart.y * lineBDirection.x) / crossDir;
+
+        Vector2 intersection = lineAStart + t * lineADirection;
+        return intersection;
     }
 }
